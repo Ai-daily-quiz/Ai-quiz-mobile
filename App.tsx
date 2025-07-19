@@ -1,28 +1,39 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React from 'react';
+import { SafeAreaView, StatusBar } from 'react-native';
+import { WebView } from 'react-native-webview';
 
-import { NewAppScreen } from '@react-native/new-app-screen';
-import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-
-function App() {
-  const isDarkMode = useColorScheme() === 'dark';
-
+function App(): React.JSX.Element {
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NewAppScreen templateFileName="App.tsx" />
-    </View>
+    <SafeAreaView style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" />
+      <WebView
+        source={{ uri: 'http://localhost:5173' }}
+        // source={{ uri: 'https://dk44bvz564mpy.cloudfront.net' }}
+        // source={{ uri: 'http://192.168.0.17:5173' }}
+        startInLoadingState={true}
+        onMessage={event => {
+          console.log('WebView:', event.nativeEvent.data);
+        }}
+        injectedJavaScript={`
+    window.addEventListener('error', (e) => {
+      window.ReactNativeWebView.postMessage('Error: ' + e.message);
+    });
+    
+    // Fetch 요청 가로채기
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+      window.ReactNativeWebView.postMessage('Fetch: ' + args[0]);
+      return originalFetch.apply(this, args)
+        .catch(err => {
+          window.ReactNativeWebView.postMessage('Fetch Error: ' + err.message);
+          throw err;
+        });
+    };
+    true;
+  `}
+      />
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
 
 export default App;
